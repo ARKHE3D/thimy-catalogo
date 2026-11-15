@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Thimy Aromas — Catálogo</title>
+<meta name="description" content="Catálogo de productos Natura y Avon. Thimy Aromas, Bahía Blanca.">
+<style>
+:root{--bg:#faf7f2;--card:#fff;--ink:#2b2118;--muted:#80756c;--line:#e8e0d4;
+--brand:#8A3E29;--gold:#E8AD41;--ok:#16a34a;--warn:#b45309}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{background:var(--card);border-bottom:1px solid var(--line);
+padding:18px 16px;position:sticky;top:0;z-index:10}
+.wrap{max-width:1100px;margin:0 auto}
+.brand{display:flex;align-items:center;gap:12px}
+.brand img{width:46px;height:46px;border-radius:50%;object-fit:cover}
+.brand h1{margin:0;font-size:1.25rem;font-weight:700;letter-spacing:.01em}
+.brand small{display:block;color:var(--muted);font-size:.78rem;font-weight:400}
+.stats{margin-top:12px;font-size:.85rem;color:var(--muted)}
+.controles{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+input,select{padding:11px 13px;border:1px solid var(--line);border-radius:10px;
+font-size:.95rem;background:#fff;color:var(--ink);min-height:46px}
+input{flex:1;min-width:180px}
+main{padding:18px 16px 60px;max-width:1100px;margin:0 auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+padding:16px;display:flex;flex-direction:column;gap:8px}
+.cat{font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;
+color:var(--brand);font-weight:700}
+.nom{font-weight:600;font-size:1rem;line-height:1.35;margin:0}
+.desc{font-size:.82rem;color:var(--muted);line-height:1.45;
+display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.pie{display:flex;justify-content:space-between;align-items:center;margin-top:auto;padding-top:8px}
+.precio{font-size:1.4rem;font-weight:800;color:var(--brand)}
+.badge{font-size:.72rem;font-weight:700;padding:4px 10px;border-radius:99px}
+.badge.disp{background:#dcfce7;color:var(--ok)}
+.badge.enc{background:#fef3c7;color:var(--warn)}
+.sku{font-size:.7rem;color:var(--muted)}
+.vacio{text-align:center;padding:60px 20px;color:var(--muted)}
+footer{text-align:center;padding:30px 16px;color:var(--muted);font-size:.8rem;
+border-top:1px solid var(--line);margin-top:20px}
+.wa{display:inline-block;margin-top:10px;background:#25d366;color:#062e14;
+padding:12px 22px;border-radius:12px;text-decoration:none;font-weight:700}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="brand">
+      <img src="logo-thimy.png" alt="Thimy Aromas"
+           onerror="this.style.display='none'">
+      <div>
+        <h1>Thimy Aromas</h1>
+        <small>Catálogo · Bahía Blanca</small>
+      </div>
+    </div>
+    <div class="stats" id="stats">Cargando catálogo...</div>
+    <div class="controles">
+      <input id="buscar" placeholder="Buscar producto..." autocomplete="off">
+      <select id="cat"><option value="">Todas las categorías</option></select>
+      <select id="disp">
+        <option value="">Todos</option>
+        <option value="Disponible">Disponibles</option>
+        <option value="Por encargo">Por encargo</option>
+      </select>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="grid" id="grid"></div>
+  <div class="vacio" id="vacio" style="display:none">
+    Sin resultados. Probá otra búsqueda.
+  </div>
+</main>
+
+<footer>
+  Thimy Aromas · Bahía Blanca<br>
+  <small>Los precios y la disponibilidad se confirman al momento de la compra.</small><br>
+  <a class="wa" href="https://wa.me/5492916421130?text=Hola%20Thimy!" target="_blank" rel="noopener">
+    Consultar por WhatsApp
+  </a>
+</footer>
+
+<script>
+let PRODUCTOS = [];
+let filtrados = [];
+
+fetch('catalogo.json?t=' + Date.now())
+  .then(r => r.json())
+  .then(d => {
+    PRODUCTOS = d.productos || [];
+    filtrados = PRODUCTOS.slice();
+    llenarCategorias();
+    render();
+  })
+  .catch(e => {
+    document.getElementById('stats').textContent = 'No se pudo cargar el catálogo.';
+  });
+
+function money(n) {
+  return '$' + Math.round(n).toLocaleString('es-AR');
+}
+
+function llenarCategorias() {
+  const cats = [...new Set(PRODUCTOS.map(p => p.categoria))].sort();
+  const sel = document.getElementById('cat');
+  cats.forEach(c => {
+    const o = document.createElement('option');
+    o.value = c; o.textContent = c;
+    sel.appendChild(o);
+  });
+}
+
+function render() {
+  const grid = document.getElementById('grid');
+  const vacio = document.getElementById('vacio');
+
+  if (!filtrados.length) {
+    grid.innerHTML = '';
+    vacio.style.display = 'block';
+    document.getElementById('stats').textContent = '0 productos';
+    return;
+  }
+  vacio.style.display = 'none';
+
+  grid.innerHTML = filtrados.map(p => `
+    <article class="card">
+      <div class="cat">${esc(p.categoria)}</div>
+      <h2 class="nom">${esc(p.nombre)}</h2>
+      ${p.descripcion ? `<p class="desc">${esc(p.descripcion)}</p>` : ''}
+      <div class="pie">
+        <span class="precio">${money(p.precio)}</span>
+        <span class="badge ${p.disponible === 'Disponible' ? 'disp' : 'enc'}">
+          ${esc(p.disponible)}
+        </span>
+      </div>
+      <div class="sku">SKU ${esc(p.sku)}</div>
+    </article>`).join('');
+
+  const disp = filtrados.filter(p => p.disponible === 'Disponible').length;
+  document.getElementById('stats').textContent =
+    `${filtrados.length} productos · ${disp} disponibles ahora`;
+}
+
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+function aplicar() {
+  const q = document.getElementById('buscar').value.toLowerCase().trim();
+  const cat = document.getElementById('cat').value;
+  const disp = document.getElementById('disp').value;
+
+  filtrados = PRODUCTOS.filter(p => {
+    if (q && !(p.nombre + ' ' + p.sku + ' ' + p.categoria).toLowerCase().includes(q)) return false;
+    if (cat && p.categoria !== cat) return false;
+    if (disp && p.disponible !== disp) return false;
+    return true;
+  });
+  render();
+}
+
+document.getElementById('buscar').oninput = aplicar;
+document.getElementById('cat').onchange = aplicar;
+document.getElementById('disp').onchange = aplicar;
+</script>
+</body>
+</html>
